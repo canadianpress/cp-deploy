@@ -34,7 +34,6 @@ on:
         required: true
       INSTANCE_ID:
         required: true
-        type: string
 
 jobs:
   deploy:
