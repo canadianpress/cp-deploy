@@ -60,6 +60,7 @@ jobs:
           MAX_POLL_TIME="${{ inputs.MAX_POLL_TIME }}"
           POLL_INTERVAL="${{ inputs.POLL_INTERVAL }}"
           INSTANCE_ID="${{ inputs.INSTANCE_ID }}"
+          DEPLOY_REPO_URL="${{ vars.REPO_URL }}"
 
           if [[ ! "$MAX_POLL_TIME" =~ ^[1-9][0-9]*$ || ! "$POLL_INTERVAL" =~ ^[1-9][0-9]*$ ]]; then
             echo "MAX_POLL_TIME and POLL_INTERVAL must be positive integers"
@@ -142,18 +143,35 @@ jobs:
                 echo "Current HEAD"
                 git -C "$TARGET_DIR" rev-parse HEAD
 
+                if [ -d "$TARGET_DIR/cp-deploy/.git" ]; then
+                  echo "Updating existing repository at $TARGET_DIR/cp-deploy..."
+                  cd "$TARGET_DIR/cp-deploy"
+                  git fetch --prune --tags --force origin
+                  git checkout main
+                  git reset --hard origin/main
+                else
+                  echo "Cloning new repository into $TARGET_DIR/cp-deploy..."
+                  git clone "$DEPLOY_REPO_URL" "$TARGET_DIR/cp-deploy"
+                  cd "$TARGET_DIR/cp-deploy"
+                  git fetch --prune --tags --force origin
+                  git checkout main
+                fi
+
+                echo "Current HEAD"
+                git -C "$TARGET_DIR/cp-deploy" rev-parse HEAD
+
                 echo "Writing .env file from SSM Parameter Store..."
                 aws ssm get-parameter \
                   --name "$SSM_ENV_PARAM_NAME" \
                   --with-decryption \
                   --query "Parameter.Value" \
-                  --output text > "$TARGET_DIR/deploy/deploy.env"
-                chmod 600 "$TARGET_DIR/deploy/deploy.env"
+                  --output text > "$TARGET_DIR/cp-deploy/deploy.env"
+                chmod 600 "$TARGET_DIR/cp-deploy/deploy.env"
 
-                cd "$TARGET_DIR/deploy/hosts"
+                cd "$TARGET_DIR/cp-deploy/hosts"
                 sudo ./setup-cms-system.sh
 
-                cd "$TARGET_DIR/deploy/services"
+                cd "$TARGET_DIR/cp-deploy/services"
                 ./cms.sh
               '
 
