@@ -208,22 +208,19 @@ clone_or_update_repo() {
         git clone "$REPO_URL" "$SOURCE_REPO_DIR"
     fi
 
-    git -C "$SOURCE_REPO_DIR" fetch --prune origin \
-        +refs/heads/*:refs/remotes/origin/* \
-        +refs/tags/*:refs/tags/*
+    git -C "$SOURCE_REPO_DIR" remote set-url origin "$REPO_URL" >/dev/null 2>&1 || true
+    git -C "$SOURCE_REPO_DIR" fetch --prune --tags origin >/dev/null 2>&1 || true
 
     local commit
-    if git -C "$SOURCE_REPO_DIR" rev-parse --verify -q "refs/remotes/origin/${REPO_REF}" >/dev/null; then
-        log_info "Using branch ${REPO_REF}"
-        commit="$(git -C "$SOURCE_REPO_DIR" rev-parse "refs/remotes/origin/${REPO_REF}")"
-    elif git -C "$SOURCE_REPO_DIR" rev-parse --verify -q "refs/tags/${REPO_REF}" >/dev/null; then
+    if git -C "$SOURCE_REPO_DIR" fetch origin "$REPO_REF" >/dev/null 2>&1; then
+        commit="$(git -C "$SOURCE_REPO_DIR" rev-parse "FETCH_HEAD^{commit}" 2>/dev/null || git -C "$SOURCE_REPO_DIR" rev-parse "FETCH_HEAD")"
+        log_info "Using ${REPO_REF} (${commit:0:12})"
+    elif git -C "$SOURCE_REPO_DIR" rev-parse -q --verify "refs/tags/${REPO_REF}^{commit}" >/dev/null; then
         log_info "Using tag ${REPO_REF}"
-        commit="$(git -C "$SOURCE_REPO_DIR" rev-parse "refs/tags/${REPO_REF}")"
-    elif git -C "$SOURCE_REPO_DIR" rev-parse --verify -q "${REPO_REF}" >/dev/null; then
-        log_info "Using commit ${REPO_REF}"
-        commit="$(git -C "$SOURCE_REPO_DIR" rev-parse "${REPO_REF}")"
+        commit="$(git -C "$SOURCE_REPO_DIR" rev-parse "refs/tags/${REPO_REF}^{commit}")"
     else
-        log_error "Could not find branch, tag, or commit '${REPO_REF}' on origin in ${REPO_URL}"
+        log_error "Could not find branch or tag '${REPO_REF}' on origin in ${REPO_URL}"
+        git -C "$SOURCE_REPO_DIR" ls-remote --heads origin | grep -F "$REPO_REF" || true
         exit 1
     fi
 
