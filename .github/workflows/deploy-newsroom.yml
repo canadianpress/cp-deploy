@@ -59,7 +59,7 @@ jobs:
           TARGET_USER="${{ inputs.TARGET_USER }}"
           MAX_POLL_TIME="${{ inputs.MAX_POLL_TIME }}"
           POLL_INTERVAL="${{ inputs.POLL_INTERVAL }}"
-          INSTANCE_ID="${{ inputs.INSTANCE_ID }}"
+          INSTANCE_ID="${{ secrets.INSTANCE_ID }}"
 
           if [[ ! "$MAX_POLL_TIME" =~ ^[1-9][0-9]*$ || ! "$POLL_INTERVAL" =~ ^[1-9][0-9]*$ ]]; then
             echo "MAX_POLL_TIME and POLL_INTERVAL must be positive integers"
