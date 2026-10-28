@@ -183,18 +183,22 @@ clone_or_update_repo() {
         fi
         git clone "$REPO_URL" "$SOURCE_REPO_DIR"
     fi
-    git -C "$SOURCE_REPO_DIR" fetch --prune --tags --force origin
 
-    # REPO_REF may be a tag (e.g. cp30.1) or a branch — tags have no
-    # origin/<ref> tracking ref, so the two cases are handled separately.
-    if git -C "$SOURCE_REPO_DIR" rev-parse -q --verify "refs/tags/${REPO_REF}" >/dev/null; then
+    git -C "$SOURCE_REPO_DIR" fetch --prune --tags origin
+
+    local commit
+    if git -C "$SOURCE_REPO_DIR" fetch origin "$REPO_REF" >/dev/null 2>&1; then
+        commit="$(git -C "$SOURCE_REPO_DIR" rev-parse "FETCH_HEAD^{commit}")"
+        log_info "Using ${REPO_REF} (${commit:0:12})"
+    elif git -C "$SOURCE_REPO_DIR" rev-parse -q --verify "refs/tags/${REPO_REF}^{commit}" >/dev/null; then
         log_info "Checking out tag ${REPO_REF}"
-        local commit
         commit="$(git -C "$SOURCE_REPO_DIR" rev-parse "refs/tags/${REPO_REF}^{commit}")"
-    else
+    elif git -C "$SOURCE_REPO_DIR" rev-parse -q --verify "refs/remotes/origin/${REPO_REF}^{commit}" >/dev/null; then
         log_info "Checking out branch ${REPO_REF}"
-        local commit
         commit="$(git -C "$SOURCE_REPO_DIR" rev-parse "refs/remotes/origin/${REPO_REF}^{commit}")"
+    else
+        log_error "Could not find branch or tag '${REPO_REF}' on origin in ${REPO_URL}"
+        exit 1
     fi
 
     local release_id
