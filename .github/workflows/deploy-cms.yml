@@ -169,13 +169,13 @@ jobs:
                   --name "$SSM_ENV_PARAM_NAME" \
                   --with-decryption \
                   --query "Parameter.Value" \
-                  --output text > "$TARGET_DIR/cp-deploy/deploy.env"
-                chmod 600 "$TARGET_DIR/cp-deploy/deploy.env"
+                  --output text > "$TARGET_DIR/cp-deploy/deploy/deploy.env"
+                chmod 600 "$TARGET_DIR/cp-deploy/deploy/deploy.env"
 
-                cd "$TARGET_DIR/cp-deploy/hosts"
+                cd "$TARGET_DIR/cp-deploy/deploy/hosts"
                 sudo ./setup-cms-system.sh
 
-                cd "$TARGET_DIR/cp-deploy/services"
+                cd "$TARGET_DIR/cp-deploy/deploy/services"
                 ./cms.sh
               '
 
